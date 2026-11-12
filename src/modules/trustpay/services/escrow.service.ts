@@ -1,4 +1,4 @@
-import type { Prisma, PrismaClient, TpPayment } from "@prisma/client";
+import type { Prisma, TpPayment } from "@prisma/client";
 import type { WebhookPayload } from "@/contracts/trustpay";
 import { newId } from "@/lib/ids";
 import type { TrustPayContext } from "@/modules/trustpay/context";
