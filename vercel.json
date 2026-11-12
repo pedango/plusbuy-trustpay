@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/trustpay/cron/maintenance",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/shop/cron/reconcile",
+      "schedule": "0 7 * * *"
+    }
+  ]
+}

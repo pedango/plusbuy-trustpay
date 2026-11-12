@@ -1,26 +1,232 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fafaf9;
+  --surface: #ffffff;
+  --border: #e7e5e4;
+  --text: #1c1917;
+  --muted: #78716c;
+
+  /* Extracted from plusbuy-logo.jpg: navy #022169, orange #FD6B02 */
+  --shop-navy: #022169;
+  --shop-accent: #fd6b02;
+  --shop-accent-hover: #e96202;
+  --shop-accent-tint: #fff4eb;
+  --shop-focus: #fdba74;
+
+  /* Extracted from trustpay-logo.jpg: green #23A90A, navy #022466 */
+  --tp-brand: #23a90a;
+  --tp-brand-hover: #209b09;
+  --tp-brand-dark: #022466;
+  --tp-brand-tint: #e8f8e6;
+
+  --status-held-fg: #92400e;
+  --status-held-bg: #fef3c7;
+  --status-ok-fg: #047857;
+  --status-ok-bg: #d1fae5;
+  --status-shipped-fg: #022169;
+  --status-shipped-bg: #e8eef8;
+  --status-bad-fg: #b91c1c;
+  --status-bad-bg: #fee2e2;
+  --status-neutral-fg: #44403c;
+  --status-neutral-bg: #e7e5e4;
+  --status-pending-fg: #6b21a8;
+  --status-pending-bg: #f3e8ff;
+
+  --shadow-card: 0 1px 2px rgba(28, 25, 23, 0.06);
 }
 
 @theme inline {
   --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-foreground: var(--text);
+  --color-muted: var(--muted);
+  --color-shop-navy: var(--shop-navy);
+  --color-shop-accent: var(--shop-accent);
+  --color-shop-accent-hover: var(--shop-accent-hover);
+  --color-shop-accent-tint: var(--shop-accent-tint);
+  --color-tp-brand: var(--tp-brand);
+  --color-tp-brand-hover: var(--tp-brand-hover);
+  --color-tp-brand-dark: var(--tp-brand-dark);
+  --color-tp-brand-tint: var(--tp-brand-tint);
+  --font-sans: var(--font-inter);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
 }
 
 body {
   background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--text);
+  font-family: var(--font-inter), Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--shop-focus);
+  outline-offset: 2px;
+}
+
+.tp-focus:focus-visible {
+  outline-color: var(--tp-brand);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+  padding: 20px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease, opacity 120ms ease;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-sm {
+  height: 36px;
+  padding: 0 12px;
+}
+
+.btn-primary {
+  background: var(--shop-accent);
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--shop-accent-hover);
+}
+
+.btn-tp {
+  background: var(--tp-brand);
+  color: #fff;
+}
+
+.btn-tp:hover:not(:disabled) {
+  background: var(--tp-brand-hover);
+}
+
+.btn-secondary {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #f5f5f4;
+}
+
+.btn-danger {
+  background: #b91c1c;
+  color: #fff;
+}
+
+.input {
+  height: 40px;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 14px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.input:focus {
+  outline: 2px solid var(--shop-focus);
+  outline-offset: 0;
+  border-color: var(--shop-accent);
+}
+
+.label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+}
+
+.page-title {
+  font-size: 30px;
+  line-height: 36px;
+  font-weight: 600;
+}
+
+.section-title {
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 600;
+}
+
+.container-page {
+  max-width: 1152px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+@media (min-width: 768px) {
+  .container-page {
+    padding: 24px;
+  }
+}
+
+dialog.modal {
+  border: 0;
+  padding: 0;
+  max-width: 28rem;
+  width: calc(100% - 2rem);
+}
+
+dialog.modal::backdrop {
+  background: rgb(2 33 105 / 0.45);
+}
+
+.highlight-flash {
+  animation: flash-bg 600ms ease;
+}
+
+@keyframes flash-bg {
+  0% {
+    background-color: #fef08a;
+  }
+  100% {
+    background-color: transparent;
+  }
 }

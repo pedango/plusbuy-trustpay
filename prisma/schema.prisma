@@ -1,0 +1,304 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  BUYER
+  MERCHANT
+  TRUSTPAY_ADMIN
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID_IN_ESCROW
+  SHIPPED
+  COMPLETED
+  DISPUTED
+  REFUNDED
+  CANCELLED
+}
+
+enum TpPaymentStatus {
+  INITIATED
+  AWAITING_APPROVAL
+  HELD
+  DISPUTED
+  RELEASED
+  REFUNDED
+  FAILED
+  EXPIRED
+}
+
+enum TpNetwork {
+  MTN_MOMO
+  TELECEL_CASH
+  AIRTELTIGO_MONEY
+}
+
+enum TpAccount {
+  BUYER_WALLET
+  ESCROW
+  MERCHANT_AVAILABLE
+  TRUSTPAY_REVENUE
+  MERCHANT_WITHDRAWN
+  BUYER_REFUNDED
+}
+
+enum TpTxnType {
+  HOLD
+  RELEASE
+  REFUND
+  WITHDRAWAL
+}
+
+enum TpPayoutStatus {
+  PROCESSING
+  PAID
+  FAILED
+}
+
+enum TpDisputeStatus {
+  OPEN
+  RESOLVED_REFUND
+  RESOLVED_RELEASE
+}
+
+enum TpWebhookStatus {
+  PENDING
+  DELIVERED
+  FAILED
+}
+
+// ============ PLUSBUY (shop) ============
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  phone        String?
+  passwordHash String
+  role         Role
+  createdAt    DateTime @default(now())
+  orders       Order[]
+  loginAttempts LoginAttempt[]
+}
+
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  email     String
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  success   Boolean
+  createdAt DateTime @default(now())
+
+  @@index([email, createdAt])
+}
+
+model Product {
+  id          String      @id @default(cuid())
+  name        String
+  description String
+  priceMinor  Int
+  colorHex    String      @default("#CBD5E1")
+  stock       Int         @default(0)
+  active      Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  items       OrderItem[]
+}
+
+model Order {
+  id           String       @id @default(cuid())
+  code         String       @unique
+  buyerId      String
+  buyer        User         @relation(fields: [buyerId], references: [id])
+  status       OrderStatus  @default(PENDING_PAYMENT)
+  totalMinor   Int
+  currency     String       @default("GHS")
+  paymentId    String?
+  checkoutUrl  String?
+  deliveryNote String?
+  version      Int          @default(0)
+  shippedAt    DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  items        OrderItem[]
+  events       OrderEvent[]
+
+  @@index([buyerId, createdAt])
+  @@index([status])
+}
+
+model OrderItem {
+  id             String  @id @default(cuid())
+  orderId        String
+  order          Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId      String
+  product        Product @relation(fields: [productId], references: [id])
+  nameSnapshot   String
+  unitPriceMinor Int
+  quantity       Int
+}
+
+model OrderEvent {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  type      String
+  message   String
+  actor     String
+  createdAt DateTime @default(now())
+
+  @@index([orderId, createdAt])
+}
+
+model ProcessedWebhook {
+  eventId     String   @id
+  type        String
+  processedAt DateTime @default(now())
+}
+
+model OrderSequence {
+  id      Int @id @default(1)
+  nextVal Int @default(1000)
+}
+
+// ============ TRUSTPAY (gateway) ============
+
+model TpMerchant {
+  id            String         @id
+  name          String
+  apiKeyHash    String         @unique
+  webhookUrl    String
+  webhookSecret String
+  feeBps        Int            @default(150)
+  createdAt     DateTime       @default(now())
+  payments      TpPayment[]
+  payouts       TpPayout[]
+  ledgerTxns    TpLedgerTxn[]
+}
+
+model TpPayment {
+  id            String          @id
+  merchantId    String
+  merchant      TpMerchant      @relation(fields: [merchantId], references: [id])
+  reference     String
+  description   String?
+  amountMinor   Int
+  feeMinor      Int             @default(0)
+  netMinor      Int             @default(0)
+  currency      String          @default("GHS")
+  status        TpPaymentStatus @default(INITIATED)
+  version       Int             @default(0)
+  network       TpNetwork?
+  payerPhone    String?
+  providerRef   String?
+  checkoutToken String          @unique
+  returnUrl     String
+  failureReason String?
+  heldAt        DateTime?
+  shippedAt     DateTime?
+  autoReleaseAt DateTime?
+  releasedAt    DateTime?
+  refundedAt    DateTime?
+  expiresAt     DateTime
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  ledgerTxns    TpLedgerTxn[]
+  disputes      TpDispute[]
+
+  @@unique([merchantId, reference])
+  @@index([merchantId, status])
+  @@index([status, autoReleaseAt])
+}
+
+model TpLedgerTxn {
+  id         String          @id
+  merchantId String
+  merchant   TpMerchant      @relation(fields: [merchantId], references: [id])
+  paymentId  String?
+  payment    TpPayment?      @relation(fields: [paymentId], references: [id])
+  type       TpTxnType
+  memo       String?
+  createdAt  DateTime        @default(now())
+  entries    TpLedgerEntry[]
+
+  @@index([merchantId, createdAt])
+}
+
+model TpLedgerEntry {
+  id          String      @id
+  txnId       String
+  txn         TpLedgerTxn @relation(fields: [txnId], references: [id])
+  merchantId  String
+  account     TpAccount
+  amountMinor Int
+  createdAt   DateTime    @default(now())
+
+  @@index([merchantId, account])
+  @@index([txnId])
+}
+
+model TpPayout {
+  id          String         @id
+  merchantId  String
+  merchant    TpMerchant     @relation(fields: [merchantId], references: [id])
+  amountMinor Int
+  network     TpNetwork
+  phone       String
+  status      TpPayoutStatus @default(PROCESSING)
+  createdAt   DateTime       @default(now())
+  completedAt DateTime?
+}
+
+model TpDispute {
+  id         String          @id
+  paymentId  String
+  payment    TpPayment       @relation(fields: [paymentId], references: [id])
+  reason     String
+  status     TpDisputeStatus @default(OPEN)
+  resolution String?
+  createdAt  DateTime        @default(now())
+  resolvedAt DateTime?
+}
+
+model TpWebhookEvent {
+  id            String          @id
+  merchantId    String
+  paymentId     String?
+  type          String
+  payload       Json
+  status        TpWebhookStatus @default(PENDING)
+  attempts      Int             @default(0)
+  nextAttemptAt DateTime        @default(now())
+  lastError     String?
+  deliveredAt   DateTime?
+  createdAt     DateTime        @default(now())
+
+  @@index([status, nextAttemptAt])
+}
+
+model TpIdempotencyKey {
+  id             String   @id
+  merchantId     String
+  key            String
+  method         String
+  path           String
+  requestHash    String
+  responseStatus Int
+  responseBody   Json
+  createdAt      DateTime @default(now())
+
+  @@unique([merchantId, key])
+}
+
+model TpDemoClock {
+  id            Int @id @default(1)
+  offsetSeconds Int @default(0)
+}

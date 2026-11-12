@@ -1,0 +1,32 @@
+---
+description: PlusBuy + TrustPay modular monolith bounded-context rules
+alwaysApply: true
+---
+
+# Architecture rules
+
+## Bounded contexts
+
+- `shop` and `trustpay` never share tables, domain types (except `src/contracts/trustpay.ts`), or imports.
+- Shop code (`app/(shop)`, `app/(merchant)`, `app/api/shop`, `modules/shop`, shop/merchant components) may import `lib/trustpay-client` and `contracts/trustpay` only. Never import `modules/trustpay` or use Prisma models prefixed `Tp`.
+- TrustPay code (`modules/trustpay`, `app/trustpay`, `app/api/trustpay`, trustpay components) may import `contracts/trustpay` only from the shared layer. Never import `modules/shop` or shop models.
+- `contracts/` imports only `zod`.
+
+## Ports and adapters
+
+- External capabilities are interfaces (`MobileMoneyProvider`, `Clock`, `WebhookTransport`) with simulated implementations injected via `createTrustPayContext()`.
+- Business logic must not call telecom APIs or raw `fetch` for MoMo; go through ports.
+
+## Domain invariants
+
+- Status changes go through transition tables (state machines), never ad hoc if-chains. Illegal transitions return `409 invalid_transition`.
+- Ledger is the source of truth: balances derived from immutable double-entry rows.
+- A state change, its ledger entries, and its outbox event are written in ONE DB transaction.
+- Mutating APIs, webhooks, and cron jobs are idempotent.
+- Money is integers in pesewas (`*Minor`), currency `GHS`, never floats.
+- Time in TrustPay comes from the `Clock` port (demo offset via `TpDemoClock`).
+
+## Fail closed
+
+- Validate all inputs with zod at every boundary; reject unknown fields.
+- Authorization checked server-side on every route (not only middleware).
