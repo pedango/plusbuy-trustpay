@@ -38,16 +38,40 @@ export function requireTrustPayAdmin(session: SessionPayload): void {
 
 /**
  * CSRF-style check for cookie-authenticated mutating routes.
- * Requires Origin to match APP_URL exactly (no trailing slash mismatch).
+ * Accepts APP_URL, the request's own origin, and VERCEL_URL when present.
  */
 export function assertSameOrigin(request: Request): void {
   const origin = request.headers.get("origin");
   if (!origin) {
+    // Same-origin navigations and some clients omit Origin; require Sec-Fetch-Site when present.
+    const site = request.headers.get("sec-fetch-site");
+    if (!site || site === "same-origin" || site === "none") return;
     throw new AuthzError("BAD_ORIGIN", "Missing Origin header");
   }
 
-  const appUrl = normalizeOrigin(getEnv().APP_URL);
-  if (normalizeOrigin(origin) !== appUrl) {
+  const allowed = new Set<string>();
+  try {
+    allowed.add(normalizeOrigin(getEnv().APP_URL));
+  } catch {
+    // env may be misconfigured; still allow the request host below
+  }
+  try {
+    allowed.add(new URL(request.url).origin);
+  } catch {
+    // ignore
+  }
+  const vercel = process.env.VERCEL_URL;
+  if (vercel) {
+    allowed.add(normalizeOrigin(vercel.startsWith("http") ? vercel : `https://${vercel}`));
+  }
+  const vercelBranch = process.env.VERCEL_BRANCH_URL;
+  if (vercelBranch) {
+    allowed.add(
+      normalizeOrigin(vercelBranch.startsWith("http") ? vercelBranch : `https://${vercelBranch}`),
+    );
+  }
+
+  if (!allowed.has(normalizeOrigin(origin))) {
     throw new AuthzError("BAD_ORIGIN", "Origin does not match APP_URL");
   }
 }

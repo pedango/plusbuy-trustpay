@@ -7,7 +7,7 @@ const WINDOW_MS = 15 * 60 * 1000;
 const MAX_FAILURES = 5;
 
 /** Valid bcrypt hash used when no user exists so compare still runs. */
-const DUMMY_HASH = "$2a$10$abcdefghijklmnopqrstuuABCDEFGHIJKLMNOPQRSTUVWX12";
+const DUMMY_HASH = "$2b$10$GGEnW75V3ZlEJf2UV950XeZa4maQdEAYgRUCt.kB3PDcFJg.HbTI2";
 
 export type LoginResult =
   | { ok: true; user: { id: string; email: string; name: string; role: string } }
