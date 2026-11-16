@@ -22,42 +22,57 @@ export default async function OrdersPage() {
   const orders = await prisma.order.findMany({
     where: session.role === "BUYER" ? { buyerId: session.sub } : {},
     orderBy: { createdAt: "desc" },
-    include: { buyer: true },
+    include: { buyer: true, items: true },
   });
+
+  const open = orders.filter((o) =>
+    ["PENDING_PAYMENT", "PAID_IN_ESCROW", "SHIPPED", "DISPUTED"].includes(o.status),
+  ).length;
 
   return (
     <div>
-      <h1 className="page-title mb-6">Orders</h1>
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="page-title">Orders</h1>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            {orders.length} total · {open} open / awaiting action
+          </p>
+        </div>
+        <Link href="/products" className="btn btn-secondary btn-sm">
+          Continue shopping
+        </Link>
+      </div>
       {orders.length === 0 ? (
-        <p className="text-[var(--muted)]">No orders yet.</p>
+        <div className="card">
+          <p className="text-[var(--muted)]">No orders yet.</p>
+          <Link href="/products" className="btn btn-primary mt-4 inline-flex">
+            Browse products
+          </Link>
+        </div>
       ) : (
-        <div className="card overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-[var(--muted)]">
-                <th className="py-2">Code</th>
-                <th>Total</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {orders.map((order) => (
-                <tr key={order.id} className="border-t border-[var(--border)]">
-                  <td className="py-3">{order.code}</td>
-                  <td>{formatGhs(order.totalMinor)}</td>
-                  <td>
-                    <Badge tone={tone(order.status)}>{order.status.replaceAll("_", " ")}</Badge>
-                  </td>
-                  <td>
-                    <Link href={`/orders/${order.id}`} className="text-[var(--shop-navy)] underline">
-                      View
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="grid gap-3">
+          {orders.map((order) => (
+            <article key={order.id} className="card flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-semibold">{order.code}</p>
+                  <Badge tone={tone(order.status)}>{order.status.replaceAll("_", " ")}</Badge>
+                </div>
+                <p className="mt-1 text-sm text-[var(--muted)]">
+                  {order.items.map((i) => `${i.nameSnapshot} × ${i.quantity}`).join(", ")}
+                </p>
+                <p className="mt-1 text-xs text-[var(--muted)]">
+                  Placed {order.createdAt.toLocaleString()}
+                </p>
+              </div>
+              <div className="flex items-center gap-4">
+                <p className="font-semibold">{formatGhs(order.totalMinor)}</p>
+                <Link href={`/orders/${order.id}`} className="btn btn-secondary btn-sm">
+                  View details
+                </Link>
+              </div>
+            </article>
+          ))}
         </div>
       )}
     </div>

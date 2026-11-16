@@ -5,6 +5,7 @@ import { assertAmountInRange, MAX_AMOUNT_MINOR, MIN_AMOUNT_MINOR } from "@/lib/m
 import type { TrustPayContext } from "@/modules/trustpay/context";
 import { TrustPayError } from "@/modules/trustpay/domain/errors";
 import { normalizeGhanaPhone } from "@/modules/trustpay/domain/phone";
+import { nowFromClock } from "@/modules/trustpay/adapters/demo-clock";
 import { transition } from "@/modules/trustpay/services/escrow.service";
 import { toPaymentDto } from "@/modules/trustpay/services/mappers";
 
@@ -36,7 +37,7 @@ export async function createPayment(
     throw new TrustPayError("not_found", "Merchant not found", { merchantId });
   }
 
-  const now = await ctx.now();
+  const now = await nowFromClock(db);
   const id = newId("pay");
   const checkoutToken = newCheckoutToken();
   const expiresAt = new Date(now.getTime() + CHECKOUT_TTL_MS);

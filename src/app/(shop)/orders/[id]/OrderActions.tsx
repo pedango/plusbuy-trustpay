@@ -94,15 +94,15 @@ export function OrderActions({
 
   return (
     <div className="mt-4 flex flex-wrap gap-3">
+      {displayStatus === "PAID_IN_ESCROW" || displayStatus === "SHIPPED" ? (
+        <button className="btn btn-primary" type="button" disabled={busy} onClick={() => setConfirmOpen(true)}>
+          Item received
+        </button>
+      ) : null}
       {displayStatus === "SHIPPED" ? (
-        <>
-          <button className="btn btn-primary" type="button" disabled={busy} onClick={() => setConfirmOpen(true)}>
-            Item received
-          </button>
-          <button className="btn btn-secondary" type="button" disabled={busy} onClick={() => setProblemOpen(true)}>
-            Report a problem
-          </button>
-        </>
+        <button className="btn btn-secondary" type="button" disabled={busy} onClick={() => setProblemOpen(true)}>
+          Report a problem
+        </button>
       ) : null}
       {displayStatus === "PAID_IN_ESCROW" ? (
         <>

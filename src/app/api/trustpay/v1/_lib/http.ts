@@ -111,7 +111,7 @@ export async function withIdempotency(
     const result = await run(tx);
     await storeIdempotency(tx, begun as IdempotencyFresh, result.status, { data: result.data });
     return result;
-  }, { maxWait: 10_000, timeout: 20_000 });
+  }, { maxWait: 20_000, timeout: 30_000 });
 }
 
 export async function flushWebhooks(ctx: TrustPayContext): Promise<void> {

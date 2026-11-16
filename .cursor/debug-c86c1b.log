@@ -1,0 +1,7 @@
+{"sessionId":"c86c1b","runId":"pre-fix","hypothesisId":"A","location":"orders/route.ts:POST","message":"checkout start","data":{"itemCount":1,"role":"BUYER"},"timestamp":1794746100369}
+{"sessionId":"c86c1b","runId":"pre-fix","hypothesisId":"A","location":"orders/route.ts:wake","message":"database wake finished","data":{"elapsedMs":595},"timestamp":1794746100964}
+{"sessionId":"c86c1b","runId":"pre-fix","hypothesisId":"B","location":"orders/route.ts:transaction","message":"order transaction committed","data":{"elapsedMs":3174,"orderCode":"PB-1007"},"timestamp":1794746103543}
+{"sessionId":"c86c1b","runId":"post-fix","hypothesisId":"B","location":"payments.service.ts:now","message":"clock read on payment connection","data":{"elapsedMs":230,"usedTransaction":true},"timestamp":1794746106118}
+{"sessionId":"c86c1b","runId":"post-fix","hypothesisId":"B","location":"payments.service.ts:now","message":"clock read on payment connection","data":{"elapsedMs":227,"usedTransaction":true},"timestamp":1794746106115}
+{"sessionId":"c86c1b","runId":"post-fix","hypothesisId":"C","location":"orders/route.ts:payment","message":"trustpay payment created","data":{"elapsedMs":6632,"hasCheckoutUrl":true},"timestamp":1794746107001}
+{"sessionId":"c86c1b","runId":"pre-fix","hypothesisId":"C","location":"orders/route.ts:payment","message":"trustpay payment created","data":{"elapsedMs":6630,"hasCheckoutUrl":true},"timestamp":1794746106999}

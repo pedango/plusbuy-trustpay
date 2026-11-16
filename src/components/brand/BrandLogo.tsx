@@ -4,12 +4,13 @@ import Image from "next/image";
 import { useState } from "react";
 
 type Brand = "plusbuy" | "trustpay";
-type Size = "sm" | "md" | "lg";
+type Size = "sm" | "md" | "lg" | "xl";
 
 const sizeMap: Record<Size, { width: number; height: number; className: string }> = {
   sm: { width: 120, height: 36, className: "h-7 w-auto" },
   md: { width: 168, height: 48, className: "h-10 w-auto" },
   lg: { width: 240, height: 72, className: "h-14 w-auto" },
+  xl: { width: 480, height: 140, className: "h-32 w-auto" },
 };
 
 const brandMeta: Record<
@@ -56,7 +57,7 @@ export function BrandLogo({
         width={dims.width}
         height={dims.height}
         className={`${dims.className} object-contain`}
-        priority={size === "lg"}
+        priority={size === "lg" || size === "xl"}
         onError={() => setFailed(true)}
       />
     </span>

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand/BrandLogo";
-import { SignOutButton } from "@/components/shop/SignOutButton";
+import { SessionMenu } from "@/components/shop/SessionMenu";
 import { getSession } from "@/lib/session";
 
 export async function ShopHeader() {
@@ -8,22 +8,18 @@ export async function ShopHeader() {
   return (
     <header className="border-b border-[var(--border)] bg-white">
       <div className="container-page flex items-center justify-between gap-4 py-4">
-        <Link href="/" aria-label="PlusBuy home">
-          <BrandLogo brand="plusbuy" size="md" />
-        </Link>
-        <nav className="flex items-center gap-4 text-sm font-medium">
+        <div className="flex items-center gap-3">
+          <Link href="/" aria-label="PlusBuy home">
+            <BrandLogo brand="plusbuy" size="md" />
+          </Link>
+          <p className="hidden text-xs text-[var(--muted)] sm:block">Escrow-protected shopping</p>
+        </div>
+        <nav className="flex flex-wrap items-center justify-end gap-3 text-sm font-medium">
           <Link href="/products">Shop</Link>
           <Link href="/cart">Cart</Link>
-          {session ? <Link href="/orders">Orders</Link> : null}
-          {session?.role === "MERCHANT" ? <Link href="/merchant">Merchant</Link> : null}
-          {session?.role === "TRUSTPAY_ADMIN" ? <Link href="/trustpay/admin">TrustPay</Link> : null}
-          {session ? (
-            <SignOutButton />
-          ) : (
-            <Link href="/login" className="btn btn-primary btn-sm">
-              Sign in
-            </Link>
-          )}
+          <SessionMenu
+            initial={session ? { name: session.name, role: session.role } : null}
+          />
         </nav>
       </div>
     </header>

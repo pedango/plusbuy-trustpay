@@ -1,6 +1,7 @@
 import type { Prisma, TpPayment } from "@prisma/client";
 import type { WebhookPayload } from "@/contracts/trustpay";
 import { newId } from "@/lib/ids";
+import { nowFromClock } from "@/modules/trustpay/adapters/demo-clock";
 import type { TrustPayContext } from "@/modules/trustpay/context";
 import { TrustPayError } from "@/modules/trustpay/domain/errors";
 import { computeFee } from "@/modules/trustpay/domain/fees";
@@ -212,7 +213,7 @@ export async function transition(
       );
     }
 
-    const now = await ctx.now();
+    const now = await nowFromClock(db);
     const guardOk =
       !transitionDef.guard ||
       transitionDef.guard({
@@ -299,5 +300,5 @@ export async function transition(
   };
 
   if (tx) return exec(tx);
-  return ctx.db.$transaction((inner) => exec(inner), { maxWait: 10_000, timeout: 20_000 });
+  return ctx.db.$transaction((inner) => exec(inner), { maxWait: 20_000, timeout: 30_000 });
 }

@@ -106,6 +106,7 @@ model Product {
   description String
   priceMinor  Int
   colorHex    String      @default("#CBD5E1")
+  imageUrl    String?     @db.Text
   stock       Int         @default(0)
   active      Boolean     @default(true)
   createdAt   DateTime    @default(now())

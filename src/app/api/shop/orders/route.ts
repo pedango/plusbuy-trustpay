@@ -1,10 +1,12 @@
 import { z } from "zod";
-import { prisma } from "@/lib/db";
+import { prisma, wakeDatabase } from "@/lib/db";
 import { getEnv } from "@/lib/env";
 import { assertSameOrigin, authErrorResponse } from "@/lib/authz";
 import { requireSession } from "@/lib/session";
 import { trustpayClient } from "@/lib/trustpay-client";
 import { nextOrderCode } from "@/modules/shop/services/order.service";
+
+export const maxDuration = 30;
 
 const Body = z
   .object({
@@ -20,6 +22,7 @@ export async function POST(request: Request) {
       return Response.json({ error: "Only buyers can check out" }, { status: 403 });
     }
     const input = Body.parse(await request.json());
+    await wakeDatabase();
 
     const order = await prisma.$transaction(async (tx) => {
       const products = await tx.product.findMany({

@@ -2,18 +2,38 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Shirt } from "lucide-react";
 import { toast } from "sonner";
+import { ProductMedia } from "@/components/shop/ProductMedia";
+import { readProductImage } from "@/components/shop/readProductImage";
 
 export function ProductEditor({
   product,
 }: {
-  product: { id: string; name: string; priceLabel: string; colorHex: string; stock: number; active: boolean };
+  product: {
+    id: string;
+    name: string;
+    description?: string;
+    priceLabel: string;
+    colorHex: string;
+    imageUrl?: string | null;
+    stock: number;
+    active: boolean;
+  };
 }) {
   const router = useRouter();
   const [stock, setStock] = useState(String(product.stock));
   const [active, setActive] = useState(product.active);
+  const [imageUrl, setImageUrl] = useState(product.imageUrl ?? "");
   const [busy, setBusy] = useState(false);
+
+  async function onFile(file: File | undefined) {
+    if (!file) return;
+    try {
+      setImageUrl(await readProductImage(file));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not read image");
+    }
+  }
 
   async function save() {
     const nextStock = Number(stock);
@@ -26,7 +46,12 @@ export function ProductEditor({
       const res = await fetch("/api/shop/merchant/products", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: product.id, stock: nextStock, active }),
+        body: JSON.stringify({
+          id: product.id,
+          stock: nextStock,
+          active,
+          ...(imageUrl && imageUrl !== product.imageUrl ? { imageUrl } : {}),
+        }),
       });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) {
@@ -42,12 +67,30 @@ export function ProductEditor({
 
   return (
     <article className="card flex flex-col gap-3 sm:flex-row sm:items-center">
-      <div className="flex h-16 w-16 items-center justify-center rounded-lg" style={{ background: product.colorHex }}>
-        <Shirt className="text-white" aria-hidden />
-      </div>
+      <ProductMedia
+        imageUrl={imageUrl}
+        colorHex={product.colorHex}
+        name={product.name}
+        className="h-16 w-16 rounded-lg"
+      />
       <div className="min-w-0 flex-1">
         <p className="font-semibold">{product.name}</p>
         <p className="text-sm text-[var(--muted)]">{product.priceLabel}</p>
+        {product.description ? (
+          <p className="mt-1 line-clamp-2 text-sm text-[var(--muted)]">{product.description}</p>
+        ) : null}
+        {product.stock <= 5 ? (
+          <p className="mt-1 text-xs font-medium text-[var(--status-held-fg)]">Low stock</p>
+        ) : null}
+        <label className="mt-2 block text-sm">
+          <span className="label">Replace image</span>
+          <input
+            className="input"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={(event) => void onFile(event.target.files?.[0])}
+          />
+        </label>
       </div>
       <label className="text-sm">
         <span className="label">Stock</span>

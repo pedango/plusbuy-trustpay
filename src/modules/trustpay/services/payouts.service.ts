@@ -72,7 +72,7 @@ export async function createPayout(
   };
 
   if (tx) return run(tx);
-  return ctx.db.$transaction((inner) => run(inner), { maxWait: 10_000, timeout: 20_000 });
+  return ctx.db.$transaction((inner) => run(inner), { maxWait: 20_000, timeout: 30_000 });
 }
 
 /** Lazily complete PROCESSING payouts older than 2 seconds (by Clock). */

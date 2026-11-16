@@ -12,8 +12,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const order = await prisma.order.findUnique({ where: { id } });
     if (!order) return Response.json({ error: "Not found" }, { status: 404 });
     requireBuyer(session, order.buyerId);
-    if (order.status !== "SHIPPED" || !order.paymentId) {
-      return Response.json({ error: "Item received is only available after shipment" }, { status: 409 });
+    if ((order.status !== "PAID_IN_ESCROW" && order.status !== "SHIPPED") || !order.paymentId) {
+      return Response.json({ error: "Item received is available once payment is held" }, { status: 409 });
     }
     await trustpayClient.releasePayment(order.paymentId, `release_${order.id}`);
     const result = await transitionOrder(order.id, "ITEM_RECEIVED", {

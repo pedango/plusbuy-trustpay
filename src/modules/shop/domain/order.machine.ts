@@ -31,6 +31,7 @@ const TABLE: Partial<Record<OrderStatus, Partial<Record<OrderEvent, Transition>>
     PAYMENT_EXPIRED: { to: "CANCELLED" },
   },
   PAID_IN_ESCROW: {
+    ITEM_RECEIVED: { to: "COMPLETED" },
     MERCHANT_SHIPPED: { to: "SHIPPED" },
     CANCEL_REQUESTED: { to: "CANCELLED", note: "await payment.refunded" },
     DISPUTE_OPENED: { to: "DISPUTED" },

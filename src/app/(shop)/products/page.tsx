@@ -1,44 +1,49 @@
 import Link from "next/link";
-import { Shirt } from "lucide-react";
 import { prisma } from "@/lib/db";
-import { formatGhs } from "@/lib/money";
-import { AddToCartButton } from "@/components/shop/AddToCartButton";
+import { ProductCard } from "@/components/shop/ProductCard";
 
 export const dynamic = "force-dynamic";
 
-export default async function ProductsPage() {
+export default async function ProductsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
+  const query = q?.trim() ?? "";
   const products = await prisma.product.findMany({
-    where: { active: true },
+    where: {
+      active: true,
+      ...(query ? { name: { contains: query, mode: "insensitive" } } : {}),
+    },
     orderBy: { name: "asc" },
   });
 
   return (
     <div>
-      <h1 className="page-title mb-6">Shirts</h1>
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="page-title">Products</h1>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            {query
+              ? `${products.length} match${products.length === 1 ? "" : "es"} for “${query}”`
+              : `${products.length} listed · Escrow-protected checkout via TrustPay`}
+          </p>
+        </div>
+        <Link href="/cart" className="btn btn-secondary btn-sm">
+          View cart
+        </Link>
+      </div>
       {products.length === 0 ? (
-        <p className="text-[var(--muted)]">No products yet. Seed the database to load the demo catalog.</p>
+        <div className="card">
+          <p className="text-[var(--muted)]">
+            {query ? `No products match “${query}”.` : "No products yet. Seed the database to load the demo catalog."}
+          </p>
+        </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="product-grid">
           {products.map((product) => (
-            <article key={product.id} className="card flex flex-col gap-3">
-              <Link href={`/products/${product.id}`} className="block">
-                <div
-                  className="flex h-40 items-center justify-center rounded-lg"
-                  style={{ background: product.colorHex }}
-                >
-                  <Shirt className="h-10 w-10 text-white drop-shadow" aria-hidden />
-                </div>
-                <h2 className="mt-3 text-lg font-semibold">{product.name}</h2>
-                <p className="text-sm text-[var(--muted)]">{product.description}</p>
-                <p className="mt-2 font-semibold">{formatGhs(product.priceMinor)}</p>
-              </Link>
-              <AddToCartButton
-                productId={product.id}
-                name={product.name}
-                priceMinor={product.priceMinor}
-                colorHex={product.colorHex}
-              />
-            </article>
+            <ProductCard key={product.id} product={product} />
           ))}
         </div>
       )}

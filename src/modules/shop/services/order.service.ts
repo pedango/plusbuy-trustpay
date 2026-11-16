@@ -98,16 +98,31 @@ export async function transitionOrder(
   return prisma.$transaction(run);
 }
 
-/** Allocate next PB-#### order code. */
+/**
+ * Allocate the next PB-#### code in one locked update.
+ * GREATEST keeps the sequence ahead of any code already stored.
+ */
 export async function nextOrderCode(tx: Prisma.TransactionClient): Promise<string> {
-  const seq = await tx.orderSequence.upsert({
-    where: { id: 1 },
-    create: { id: 1, nextVal: 1001 },
-    update: { nextVal: { increment: 1 } },
-  });
-  // upsert returns pre-increment for create path carefully:
-  const codeNum = seq.nextVal;
-  return `PB-${codeNum}`;
+  const rows = await tx.$queryRaw<Array<{ nextVal: number }>>`
+    INSERT INTO "OrderSequence" ("id", "nextVal")
+    VALUES (1, 1001)
+    ON CONFLICT ("id") DO UPDATE
+    SET "nextVal" = GREATEST(
+      "OrderSequence"."nextVal",
+      COALESCE(
+        (
+          SELECT MAX(CAST(SUBSTRING("code" FROM 4) AS INTEGER)) + 1
+          FROM "Order"
+          WHERE "code" ~ '^PB-[0-9]+$'
+        ),
+        "OrderSequence"."nextVal"
+      )
+    ) + 1
+    RETURNING "nextVal"
+  `;
+  const nextVal = rows[0]?.nextVal;
+  if (nextVal == null) throw new Error("Could not allocate an order code");
+  return `PB-${Number(nextVal) - 1}`;
 }
 
 /**

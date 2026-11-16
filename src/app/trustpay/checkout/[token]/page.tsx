@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { toast } from "sonner";
 import { formatGhs } from "@/lib/money";
 import { isValidGhanaPhone, normalizeGhanaPhone } from "@/modules/trustpay/domain/phone";
+import { MomoPrompt } from "@/components/trustpay/MomoPrompt";
 
 type CheckoutView = {
   payment: {
@@ -13,6 +14,8 @@ type CheckoutView = {
     amountMinor: number;
     status: string;
     returnUrl: string;
+    payerPhone?: string | null;
+    network?: string | null;
   };
   merchantName: string;
 };
@@ -23,13 +26,17 @@ const NETWORKS = [
   { id: "AIRTELTIGO_MONEY", label: "AirtelTigo Money", color: "#2563EB" },
 ] as const;
 
+function networkLabel(id: string | null | undefined) {
+  return NETWORKS.find((item) => item.id === id)?.label ?? "Mobile money";
+}
+
 export default function CheckoutPage() {
   const params = useParams<{ token: string }>();
-  const router = useRouter();
   const [view, setView] = useState<CheckoutView | null>(null);
   const [network, setNetwork] = useState<(typeof NETWORKS)[number]["id"]>("MTN_MOMO");
   const [phone, setPhone] = useState("0244000000");
   const [busy, setBusy] = useState(false);
+  const [prompt, setPrompt] = useState<{ phone: string; networkLabel: string } | null>(null);
   const phoneOk = isValidGhanaPhone(phone);
   const warning = phoneOk ? normalizeGhanaPhone(phone, network).softNetworkWarning : undefined;
 
@@ -37,8 +44,17 @@ export default function CheckoutPage() {
     void fetch(`/api/trustpay/v1/checkout/${params.token}`)
       .then((res) => res.json())
       .then((body: { data?: CheckoutView; error?: { message: string } }) => {
-        if (!body.data) toast.error(body.error?.message ?? "Checkout not found");
-        else setView(body.data);
+        if (!body.data) {
+          toast.error(body.error?.message ?? "Checkout not found");
+          return;
+        }
+        setView(body.data);
+        if (body.data.payment.status === "AWAITING_APPROVAL") {
+          setPrompt({
+            phone: body.data.payment.payerPhone ?? phone,
+            networkLabel: networkLabel(body.data.payment.network),
+          });
+        }
       });
   }, [params.token]);
 
@@ -55,7 +71,8 @@ export default function CheckoutPage() {
         toast.error(body.error?.message ?? "Could not start payment");
         return;
       }
-      router.push(`/trustpay/approve/${params.token}`);
+      const label = NETWORKS.find((item) => item.id === network)?.label ?? "Mobile money";
+      setPrompt({ phone, networkLabel: label });
     } finally {
       setBusy(false);
     }
@@ -63,12 +80,27 @@ export default function CheckoutPage() {
 
   if (!view) return <p>Loading checkout…</p>;
 
+  if (prompt) {
+    return (
+      <MomoPrompt
+        token={params.token}
+        amountMinor={view.payment.amountMinor}
+        phone={prompt.phone}
+        networkLabel={prompt.networkLabel}
+        returnUrl={view.payment.returnUrl}
+      />
+    );
+  }
+
   return (
     <div className="mx-auto max-w-lg card bg-white">
       <p className="label">Pay {view.merchantName}</p>
       <h1 className="page-title mt-2">{formatGhs(view.payment.amountMinor)}</h1>
       <p className="mt-1 text-sm text-[var(--muted)]">Order {view.payment.reference}</p>
-      <p className="mt-4 text-sm">Your money is held safely by TrustPay until you confirm delivery.</p>
+      <p className="mt-4 text-sm">
+        Enter the number that should receive the approval prompt. TrustPay holds the payment until you confirm
+        delivery. No real money moves in this demo.
+      </p>
       <div className="mt-4 grid gap-2">
         {NETWORKS.map((item) => (
           <button
@@ -95,7 +127,7 @@ export default function CheckoutPage() {
       {!phoneOk ? <p className="mt-2 text-sm text-[var(--status-bad-fg)]">Use 0XXXXXXXXX or +233XXXXXXXXX.</p> : null}
       {warning ? <p className="mt-2 text-sm text-[var(--status-held-fg)]">{warning}</p> : null}
       <button className="btn btn-tp mt-4 w-full" type="button" disabled={busy || !phoneOk} onClick={pay}>
-        {busy ? "Starting…" : `Pay ${formatGhs(view.payment.amountMinor)}`}
+        {busy ? "Sending prompt…" : `Send prompt to pay ${formatGhs(view.payment.amountMinor)}`}
       </button>
     </div>
   );

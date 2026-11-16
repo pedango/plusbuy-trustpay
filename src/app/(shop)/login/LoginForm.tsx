@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { Button } from "@/components/ui/Button";
@@ -16,7 +16,6 @@ const DEMO_ACCOUNTS = [
 ] as const;
 
 export function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -36,16 +35,18 @@ export function LoginForm() {
         return;
       }
 
-      toast.success("Signed in");
       const next = searchParams.get("next");
-      if (next && next.startsWith("/")) {
-        router.push(next);
-        return;
-      }
       const role = data.user?.role;
-      if (role === "MERCHANT") router.push("/merchant");
-      else if (role === "TRUSTPAY_ADMIN") router.push("/trustpay/admin");
-      else router.push("/products");
+      const destination =
+        next && next.startsWith("/") && !next.startsWith("//")
+          ? next
+          : role === "MERCHANT"
+            ? "/merchant"
+            : role === "TRUSTPAY_ADMIN"
+              ? "/trustpay/admin"
+              : "/products";
+      window.location.assign(destination);
+      return;
     } catch {
       toast.error("Network error");
     } finally {

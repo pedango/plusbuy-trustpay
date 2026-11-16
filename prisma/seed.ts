@@ -135,10 +135,28 @@ export async function seedDemo() {
     update: { offsetSeconds: 0 },
   });
 
+  const latestOrder = await prisma.order.findFirst({
+    where: { code: { startsWith: "PB-" } },
+    orderBy: { createdAt: "desc" },
+    select: { code: true },
+  });
+  let nextVal = 1000;
+  if (latestOrder) {
+    const parsed = Number(latestOrder.code.replace(/^PB-/, ""));
+    if (Number.isFinite(parsed)) nextVal = parsed + 1;
+  }
+  const allOrders = await prisma.order.findMany({
+    where: { code: { startsWith: "PB-" } },
+    select: { code: true },
+  });
+  for (const row of allOrders) {
+    const parsed = Number(row.code.replace(/^PB-/, ""));
+    if (Number.isFinite(parsed) && parsed >= nextVal) nextVal = parsed + 1;
+  }
   await prisma.orderSequence.upsert({
     where: { id: 1 },
-    create: { id: 1, nextVal: 1000 },
-    update: { nextVal: 1000 },
+    create: { id: 1, nextVal },
+    update: { nextVal },
   });
 
   for (const product of PRODUCTS) {
