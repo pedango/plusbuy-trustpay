@@ -302,3 +302,64 @@ export async function transition(
   if (tx) return exec(tx);
   return ctx.db.$transaction((inner) => exec(inner), { maxWait: 20_000, timeout: 30_000 });
 }
+
+/**
+ * Lower a HELD payment to `nextAmountMinor` and return the difference to the buyer.
+ * Status stays HELD unless the new amount is zero, which refunds the remainder.
+ * The amount update and its ledger rows are written in one transaction.
+ */
+export async function reduceHeldAmount(
+  ctx: TrustPayContext,
+  paymentId: string,
+  merchantId: string,
+  nextAmountMinor: number,
+  tx: Prisma.TransactionClient,
+): Promise<TpPayment> {
+  if (!Number.isInteger(nextAmountMinor) || nextAmountMinor < 0) {
+    throw new TrustPayError("validation_error", "Amount must be a non-negative integer", {
+      amountMinor: nextAmountMinor,
+    });
+  }
+
+  const payment = await tx.tpPayment.findUnique({ where: { id: paymentId } });
+  if (!payment || payment.merchantId !== merchantId) {
+    throw new TrustPayError("not_found", "Payment not found", { paymentId });
+  }
+  if (payment.status === "REFUNDED" && nextAmountMinor === 0) return payment;
+  if (payment.status === "RELEASED") {
+    throw new TrustPayError("invalid_transition", "Released payments cannot be reduced", { paymentId });
+  }
+  if (nextAmountMinor > payment.amountMinor) {
+    throw new TrustPayError("validation_error", "Held amount cannot be increased", {
+      amountMinor: payment.amountMinor,
+      nextAmountMinor,
+    });
+  }
+  if (nextAmountMinor === payment.amountMinor) return payment;
+  if (payment.status !== "HELD") {
+    throw new TrustPayError("invalid_transition", `Illegal adjustment from ${payment.status}`, {
+      paymentId,
+      from: payment.status,
+    });
+  }
+  if (nextAmountMinor === 0) {
+    return transition(paymentId, "REFUND_REQUESTED", ctx, undefined, tx);
+  }
+
+  const delta = payment.amountMinor - nextAmountMinor;
+  const updated = await tx.tpPayment.updateMany({
+    where: { id: paymentId, version: payment.version, status: "HELD" },
+    data: { amountMinor: nextAmountMinor, version: { increment: 1 } },
+  });
+  if (updated.count === 0) {
+    throw new TrustPayError("conflict_retry", "Payment was updated concurrently", { paymentId });
+  }
+
+  await writeLedgerTxn(tx, payment, {
+    type: "REFUND",
+    entries: recipeRefund(delta),
+    memo: `Partial refund ${payment.reference}`,
+  });
+
+  return tx.tpPayment.findUniqueOrThrow({ where: { id: paymentId } });
+}

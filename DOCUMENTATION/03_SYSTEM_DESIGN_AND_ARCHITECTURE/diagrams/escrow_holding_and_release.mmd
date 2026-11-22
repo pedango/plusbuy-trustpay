@@ -1,0 +1,10 @@
+sequenceDiagram
+  participant TP as TrustPay
+  participant Ledger
+  participant Shop as PlusBuy
+  Note over TP,Ledger: APPROVED
+  TP->>Ledger: HOLD buyer to escrow
+  TP->>Shop: payment.held
+  Note over TP,Ledger: RELEASE_REQUESTED
+  TP->>Ledger: RELEASE escrow to merchant+fee
+  TP->>Shop: payment.released

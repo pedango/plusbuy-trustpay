@@ -1,0 +1,11 @@
+sequenceDiagram
+  participant Buyer
+  participant Shop as PlusBuy
+  participant TP as TrustPay
+  participant MoMo as SimulatedMoMo
+  Buyer->>Shop: Place order
+  Shop->>TP: POST /payments
+  Buyer->>TP: Checkout start + approve PIN
+  TP->>MoMo: confirmPayment
+  MoMo-->>TP: APPROVED
+  TP->>Shop: payment.held

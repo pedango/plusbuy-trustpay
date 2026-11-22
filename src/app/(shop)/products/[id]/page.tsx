@@ -3,8 +3,8 @@ import { notFound } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { formatGhs } from "@/lib/money";
-import { AddToCartButton } from "@/components/shop/AddToCartButton";
 import { ProductCard } from "@/components/shop/ProductCard";
+import { ProductPurchase } from "@/components/shop/ProductPurchase";
 import { ProductMedia } from "@/components/shop/ProductMedia";
 
 export const dynamic = "force-dynamic";
@@ -55,15 +55,14 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
               <dd className="font-medium">TrustPay escrow</dd>
             </div>
           </dl>
-          <div className="mt-6">
-            <AddToCartButton
-              productId={product.id}
-              name={product.name}
-              priceMinor={product.priceMinor}
-              colorHex={product.colorHex}
-              imageUrl={product.imageUrl}
-            />
-          </div>
+          <ProductPurchase
+            productId={product.id}
+            name={product.name}
+            priceMinor={product.priceMinor}
+            colorHex={product.colorHex}
+            imageUrl={product.imageUrl}
+            stock={product.stock}
+          />
           <div className="card mt-6 bg-[var(--shop-accent-tint)]">
             <p className="flex items-center gap-2 text-sm font-medium text-[var(--shop-navy)]">
               <ShieldCheck className="h-4 w-4" /> Buyer protection

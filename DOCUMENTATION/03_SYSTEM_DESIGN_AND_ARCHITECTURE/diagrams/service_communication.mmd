@@ -1,0 +1,7 @@
+sequenceDiagram
+  participant Shop as PlusBuy
+  participant TP as TrustPay
+  Shop->>TP: Bearer API + Idempotency-Key
+  TP-->>Shop: JSON payment/balance
+  TP->>Shop: TrustPay-Signature webhook
+  Shop-->>TP: 200 OK

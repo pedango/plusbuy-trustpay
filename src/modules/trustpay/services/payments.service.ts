@@ -6,7 +6,7 @@ import type { TrustPayContext } from "@/modules/trustpay/context";
 import { TrustPayError } from "@/modules/trustpay/domain/errors";
 import { normalizeGhanaPhone } from "@/modules/trustpay/domain/phone";
 import { nowFromClock } from "@/modules/trustpay/adapters/demo-clock";
-import { transition } from "@/modules/trustpay/services/escrow.service";
+import { reduceHeldAmount, transition } from "@/modules/trustpay/services/escrow.service";
 import { toPaymentDto } from "@/modules/trustpay/services/mappers";
 
 const CHECKOUT_TTL_MS = 30 * 60 * 1000;
@@ -275,6 +275,17 @@ export async function releasePayment(
   }
   if (payment.status === "RELEASED") return toPaymentDto(payment);
   const updated = await transition(paymentId, "RELEASE_REQUESTED", ctx, undefined, tx);
+  return toPaymentDto(updated);
+}
+
+export async function adjustHeldPayment(
+  ctx: TrustPayContext,
+  paymentId: string,
+  merchantId: string,
+  amountMinor: number,
+  tx: Prisma.TransactionClient,
+): Promise<Payment> {
+  const updated = await reduceHeldAmount(ctx, paymentId, merchantId, amountMinor, tx);
   return toPaymentDto(updated);
 }
 

@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db";
 import { assertSameOrigin, authErrorResponse, requireBuyer } from "@/lib/authz";
 import { requireSession } from "@/lib/session";
 import { TrustPayError, trustpayClient } from "@/lib/trustpay-client";
-import { ShopError, transitionOrder } from "@/modules/shop/services/order.service";
+import { ShopError, syncEscrowToOrderTotal, transitionOrder } from "@/modules/shop/services/order.service";
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
@@ -15,7 +15,19 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     if ((order.status !== "PAID_IN_ESCROW" && order.status !== "SHIPPED") || !order.paymentId) {
       return Response.json({ error: "Item received is available once payment is held" }, { status: 409 });
     }
-    await trustpayClient.releasePayment(order.paymentId, `release_${order.id}`);
+    await syncEscrowToOrderTotal(order);
+    const fresh = await prisma.order.findUniqueOrThrow({ where: { id } });
+    await syncEscrowToOrderTotal(fresh);
+    const current = await prisma.order.findUniqueOrThrow({ where: { id } });
+    if (
+      !current.paymentId ||
+      current.totalMinor === 0 ||
+      current.status === "REFUNDED" ||
+      current.status === "CANCELLED"
+    ) {
+      return Response.json({ data: current });
+    }
+    await trustpayClient.releasePayment(current.paymentId, `release_${current.id}`);
     const result = await transitionOrder(order.id, "ITEM_RECEIVED", {
       actor: "buyer",
       message: "Buyer confirmed the item was received",

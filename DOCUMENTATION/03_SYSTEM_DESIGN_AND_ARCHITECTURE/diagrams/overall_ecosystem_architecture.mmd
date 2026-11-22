@@ -1,0 +1,7 @@
+flowchart LR
+  Buyer --> PlusBuy
+  Merchant --> PlusBuy
+  PlusBuy -->|"HTTP + Idempotency-Key"| TrustPay
+  TrustPay -->|"signed webhook"| PlusBuy
+  TrustPay --> MoMo["MobileMoneyProvider (simulated)"]
+  Admin --> TrustPay

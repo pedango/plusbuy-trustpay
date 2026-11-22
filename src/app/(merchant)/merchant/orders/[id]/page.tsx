@@ -74,16 +74,23 @@ export default async function MerchantOrderPage({ params }: { params: Promise<{ 
             <h2 className="section-title">Line items</h2>
             <ul className="mt-3 divide-y divide-[var(--border)] text-sm">
               {order.items.map((item) => (
-                <li key={item.id} className="flex justify-between gap-3 py-3">
-                  <div>
-                    <p className="font-medium">
-                      {item.nameSnapshot} × {item.quantity}
-                    </p>
-                    <p className="text-xs text-[var(--muted)]">{formatGhs(item.unitPriceMinor)} each</p>
+                <li key={item.id} className="py-3">
+                  <div className="flex justify-between gap-3">
+                    <div>
+                      <p className="font-medium">
+                        {item.nameSnapshot} × {item.quantity}
+                      </p>
+                      <p className="text-xs text-[var(--muted)]">{formatGhs(item.unitPriceMinor)} each</p>
+                      {item.quantity < item.orderedQuantity ? (
+                        <p className="text-xs text-[var(--muted)]">Ordered {item.orderedQuantity}</p>
+                      ) : null}
+                    </div>
+                    <span className="font-medium">{formatGhs(item.unitPriceMinor * item.quantity)}</span>
                   </div>
-                  <span className="font-medium">
-                    {formatGhs(item.unitPriceMinor * item.quantity)}
-                  </span>
+                  {item.buyerComment ? <p className="mt-2 text-[var(--muted)]">{item.buyerComment}</p> : null}
+                  {item.buyerImageUrl ? (
+                    <img src={item.buyerImageUrl} alt="" className="mt-2 h-20 w-20 rounded-lg object-cover" />
+                  ) : null}
                 </li>
               ))}
             </ul>

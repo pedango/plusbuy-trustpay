@@ -1,0 +1,23 @@
+flowchart TB
+  subgraph UI
+    Landing
+    Products
+    Cart
+    Orders
+    MerchantDash[Merchant Dashboard]
+  end
+  subgraph API
+    ShopAuth["/api/shop/auth"]
+    ShopOrders["/api/shop/orders"]
+    ShopMerch["/api/shop/merchant"]
+    ShopWH["/api/shop/webhooks/trustpay"]
+  end
+  subgraph Domain
+    OrderMachine
+    OrderService
+  end
+  UI --> API
+  API --> Domain
+  Domain --> PrismaShop[(Shop tables)]
+  Domain --> TPClient[trustpay-client]
+  TPClient --> TrustPayAPI["/api/trustpay/v1"]

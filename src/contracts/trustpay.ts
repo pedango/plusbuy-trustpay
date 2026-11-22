@@ -95,6 +95,12 @@ export const PayoutSchema = z
   })
   .strict();
 
+export const AdjustPaymentRequestSchema = z
+  .object({
+    amountMinor: z.number().int().nonnegative(),
+  })
+  .strict();
+
 export const DisputeRequestSchema = z
   .object({
     reason: z.string().min(3).max(500),

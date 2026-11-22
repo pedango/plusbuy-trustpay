@@ -1,0 +1,28 @@
+# TrustPay — Payment Lifecycle and State Management
+
+## State machine (implemented)
+
+```mermaid
+stateDiagram-v2
+  [*] --> INITIATED
+  INITIATED --> AWAITING_APPROVAL: CHECKOUT_STARTED
+  INITIATED --> EXPIRED: EXPIRY_ELAPSED
+  INITIATED --> FAILED: DECLINED
+  AWAITING_APPROVAL --> HELD: APPROVED
+  AWAITING_APPROVAL --> FAILED: DECLINED
+  AWAITING_APPROVAL --> EXPIRED: EXPIRY_ELAPSED
+  HELD --> RELEASED: RELEASE_REQUESTED
+  HELD --> RELEASED: AUTO_RELEASE_DUE
+  HELD --> REFUNDED: REFUND_REQUESTED
+  HELD --> DISPUTED: DISPUTE_OPENED
+  DISPUTED --> REFUNDED: DISPUTE_RESOLVED_REFUND
+  DISPUTED --> RELEASED: DISPUTE_RESOLVED_RELEASE
+```
+
+Source: `src/modules/trustpay/domain/payment.machine.ts`.
+
+## Shipment
+Does not change status. Sets `shippedAt` and `autoReleaseAt` (AUTO_RELEASE_DAYS, default 7) while HELD.
+
+## Terminal
+RELEASED, REFUNDED, FAILED, EXPIRED.

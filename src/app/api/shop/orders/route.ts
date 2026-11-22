@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { browserOrigin } from "@/lib/app-origin";
 import { prisma, wakeDatabase } from "@/lib/db";
 import { getEnv } from "@/lib/env";
 import { assertSameOrigin, authErrorResponse } from "@/lib/authz";
@@ -52,6 +53,7 @@ export async function POST(request: Request) {
               nameSnapshot: line.product.name,
               unitPriceMinor: line.product.priceMinor,
               quantity: line.quantity,
+              orderedQuantity: line.quantity,
             })),
           },
           events: {
@@ -74,22 +76,25 @@ export async function POST(request: Request) {
     });
 
     const env = getEnv();
+    const origin = browserOrigin(request, env.APP_URL);
     const payment = await trustpayClient.createPayment(
       {
         amountMinor: order.totalMinor,
         reference: order.code,
         description: `PlusBuy ${order.code}`,
-        returnUrl: `${env.APP_URL}/orders/${order.id}?payment=return`,
+        returnUrl: `${origin}/orders/${order.id}?payment=return`,
       },
       `order_${order.id}_create`,
     );
+    const checkoutPath = new URL(payment.checkoutUrl);
+    const checkoutUrl = `${origin}${checkoutPath.pathname}${checkoutPath.search}`;
 
     await prisma.order.update({
       where: { id: order.id },
-      data: { paymentId: payment.id, checkoutUrl: payment.checkoutUrl },
+      data: { paymentId: payment.id, checkoutUrl },
     });
 
-    return Response.json({ data: { orderId: order.id, checkoutUrl: payment.checkoutUrl, code: order.code } });
+    return Response.json({ data: { orderId: order.id, checkoutUrl, code: order.code } });
   } catch (error) {
     const auth = authErrorResponse(error);
     if (auth) return auth;

@@ -1,0 +1,9 @@
+flowchart TB
+  Routes["API routes + checkout UI"] --> Services
+  Services --> Machine[payment.machine]
+  Services --> Ledger[ledger recipes]
+  Services --> PrismaTp[(Tp tables)]
+  Services --> MoMoPort[MobileMoneyProvider]
+  Services --> WHPort[WebhookTransport]
+  MoMoPort --> Simulated[SimulatedMomoProvider]
+  WHPort --> HTTP[HttpWebhookTransport]

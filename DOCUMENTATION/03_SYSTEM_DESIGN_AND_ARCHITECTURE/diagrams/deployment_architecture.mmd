@@ -1,0 +1,5 @@
+flowchart TB
+  Browser --> Vercel[Next.js on Vercel]
+  Vercel --> DB[(PostgreSQL)]
+  Cron1[Daily maintenance] --> Vercel
+  Cron2[Daily reconcile] --> Vercel

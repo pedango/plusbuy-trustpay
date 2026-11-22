@@ -123,7 +123,7 @@ export function OrderActions({
 
       <Modal open={confirmOpen} title="Confirm delivery" onClose={() => setConfirmOpen(false)}>
         <p className="mt-2 text-sm">
-          Confirm you received the correct item? This releases {amountLabel} to the seller and cannot be undone.
+          Confirm you received what you are keeping? This releases {amountLabel} to the seller. Units you removed are not included. This cannot be undone.
         </p>
         <div className="mt-4 flex gap-2">
           <button

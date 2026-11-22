@@ -38,6 +38,7 @@ const TABLE: Partial<Record<OrderStatus, Partial<Record<OrderEvent, Transition>>
   },
   SHIPPED: {
     ITEM_RECEIVED: { to: "COMPLETED" },
+    CANCEL_REQUESTED: { to: "CANCELLED", note: "buyer kept nothing" },
     DISPUTE_OPENED: { to: "DISPUTED" },
     PAYMENT_RELEASED: { to: "COMPLETED" },
   },

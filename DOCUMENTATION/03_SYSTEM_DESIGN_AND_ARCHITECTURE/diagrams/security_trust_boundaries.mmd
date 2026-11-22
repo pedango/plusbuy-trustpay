@@ -1,0 +1,23 @@
+flowchart TB
+  subgraph Public
+    BuyerBrowser
+    CheckoutUI
+  end
+  subgraph PlusBuyTrust[PlusBuy trust zone]
+    ShopAPI
+    SessionJWT
+  end
+  subgraph TrustPayTrust[TrustPay trust zone]
+    TPAPI
+    Ledger
+    Outbox
+  end
+  subgraph External
+    MoMoPort[MoMo port simulated]
+  end
+  BuyerBrowser --> ShopAPI
+  BuyerBrowser --> CheckoutUI
+  ShopAPI -->|API key| TPAPI
+  TPAPI -->|HMAC webhook| ShopAPI
+  TPAPI --> MoMoPort
+  CheckoutUI --> TPAPI

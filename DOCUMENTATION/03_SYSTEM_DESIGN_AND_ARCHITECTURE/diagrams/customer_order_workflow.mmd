@@ -1,0 +1,9 @@
+flowchart TD
+  Browse --> Cart --> Checkout --> Pending[PENDING_PAYMENT]
+  Pending --> Escrow[PAID_IN_ESCROW]
+  Escrow --> Rider[SHIPPED optional]
+  Escrow --> Received[Item received]
+  Rider --> Received
+  Received --> Done[COMPLETED]
+  Escrow --> Dispute[DISPUTED]
+  Rider --> Dispute

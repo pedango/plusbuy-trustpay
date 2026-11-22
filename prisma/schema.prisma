@@ -142,9 +142,12 @@ model OrderItem {
   order          Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   productId      String
   product        Product @relation(fields: [productId], references: [id])
-  nameSnapshot   String
-  unitPriceMinor Int
-  quantity       Int
+  nameSnapshot    String
+  unitPriceMinor  Int
+  quantity        Int
+  orderedQuantity Int
+  buyerComment    String? @db.Text
+  buyerImageUrl   String? @db.Text
 }
 
 model OrderEvent {

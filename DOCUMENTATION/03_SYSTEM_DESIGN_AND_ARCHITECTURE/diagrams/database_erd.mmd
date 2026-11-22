@@ -1,0 +1,11 @@
+erDiagram
+  User ||--o{ Order : places
+  Order ||--|{ OrderItem : has
+  Product ||--o{ OrderItem : listed
+  Order ||--o{ OrderEvent : logs
+  TpMerchant ||--o{ TpPayment : owns
+  TpPayment ||--o{ TpLedgerTxn : may_have
+  TpLedgerTxn ||--|{ TpLedgerEntry : posts
+  TpMerchant ||--o{ TpPayout : withdraws
+  TpPayment ||--o{ TpDispute : may_have
+  TpMerchant ||--o{ TpWebhookEvent : outbox

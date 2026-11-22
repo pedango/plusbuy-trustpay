@@ -274,4 +274,59 @@ export async function reconcileStaleOrders(): Promise<number> {
   return changed;
 }
 
+type EscrowOrder = {
+  id: string;
+  paymentId: string | null;
+  totalMinor: number;
+  status: string;
+};
+
+/**
+ * Move a held payment down to the order total. A zero total refunds the remainder.
+ * Increasing the held amount is rejected.
+ */
+export async function syncEscrowToOrderTotal(
+  order: EscrowOrder,
+): Promise<"refunded" | "adjusted" | "unchanged"> {
+  if (!order.paymentId) return "unchanged";
+  if (order.status !== "PAID_IN_ESCROW" && order.status !== "SHIPPED" && order.status !== "CANCELLED") {
+    return "unchanged";
+  }
+
+  const payment = await trustpayClient.getPayment(order.paymentId);
+  if (payment.status === "REFUNDED") {
+    if (order.status === "PAID_IN_ESCROW" || order.status === "SHIPPED") {
+      await transitionOrder(order.id, "CANCEL_REQUESTED", {
+        actor: "buyer",
+        message: "Buyer kept none of the items. Payment returned from escrow.",
+      });
+    }
+    await transitionOrder(order.id, "PAYMENT_REFUNDED", {
+      actor: "trustpay",
+      message: "Payment returned because the order total is now zero",
+    });
+    return "refunded";
+  }
+  if (payment.status !== "HELD") return "unchanged";
+  if (payment.amountMinor === order.totalMinor) return "unchanged";
+  if (order.totalMinor > payment.amountMinor) {
+    throw new ShopError("conflict", 409, "Escrow is already below the order total");
+  }
+  if (order.totalMinor === 0) {
+    await trustpayClient.refundPayment(order.paymentId, `refund_${order.id}_zero`);
+    await transitionOrder(order.id, "CANCEL_REQUESTED", {
+      actor: "buyer",
+      message: "Buyer kept none of the items. Payment returned from escrow.",
+    });
+    await transitionOrder(order.id, "PAYMENT_REFUNDED", {
+      actor: "trustpay",
+      message: "Payment returned because the order total is now zero",
+    });
+    return "refunded";
+  }
+
+  await trustpayClient.adjustPayment(order.paymentId, order.totalMinor, `adjust_${order.id}_${order.totalMinor}`);
+  return "adjusted";
+}
+
 export type { OrderEvent };

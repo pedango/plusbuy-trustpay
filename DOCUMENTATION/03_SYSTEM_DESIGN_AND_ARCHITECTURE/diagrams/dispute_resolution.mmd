@@ -1,0 +1,7 @@
+flowchart TD
+  A[HELD] --> B[DISPUTE_OPENED]
+  B --> C{Admin resolve}
+  C -->|REFUND| D[REFUNDED + REFUND ledger]
+  C -->|RELEASE| E[RELEASED + RELEASE ledger]
+  D --> F[Webhook payment.refunded]
+  E --> G[Webhook payment.released]

@@ -29,6 +29,7 @@ export default function CartPage() {
   function persist(next: CartItem[]) {
     setItems(next);
     localStorage.setItem("pb_cart", JSON.stringify(next));
+    window.dispatchEvent(new Event("pb-cart"));
   }
 
   const total = items.reduce((sum, item) => sum + item.priceMinor * item.quantity, 0);
@@ -151,16 +152,38 @@ export default function CartPage() {
       <aside className="space-y-4">
         <div className="card">
           <h2 className="section-title">Order summary</h2>
-          <dl className="mt-4 space-y-2 text-sm">
-            <div className="flex justify-between">
-              <dt className="text-[var(--muted)]">Items</dt>
-              <dd>{count}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-[var(--muted)]">Subtotal</dt>
-              <dd className="font-semibold">{formatGhs(total)}</dd>
-            </div>
-          </dl>
+          {items.length === 0 ? (
+            <p className="mt-4 text-sm text-[var(--muted)]">Add a product to see the total.</p>
+          ) : (
+            <table className="mt-4 w-full border-collapse text-sm">
+              <thead>
+                <tr className="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
+                  <th className="pb-2 text-left font-medium align-middle">Item</th>
+                  <th className="w-12 pb-2 pl-4 text-right font-medium align-middle">Qty</th>
+                  <th className="pb-2 pl-6 text-right font-medium align-middle">Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((item) => (
+                  <tr key={item.productId}>
+                    <td className="py-1.5 pr-3 align-middle">{item.name}</td>
+                    <td className="py-1.5 pl-4 text-right align-middle tabular-nums">{item.quantity}</td>
+                    <td className="py-1.5 pl-6 text-right align-middle tabular-nums whitespace-nowrap">
+                      {formatGhs(item.priceMinor * item.quantity)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td className="border-t border-[var(--border)] pt-3 align-middle font-semibold">Grand total</td>
+                  <td colSpan={2} className="border-t border-[var(--border)] pt-3 text-right align-middle">
+                    <span className="text-lg font-semibold tabular-nums text-[var(--shop-navy)]">{formatGhs(total)}</span>
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          )}
           <button
             className="btn btn-primary mt-5 w-full"
             type="button"

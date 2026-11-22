@@ -4,8 +4,9 @@ import { prisma } from "@/lib/db";
 import { formatGhs } from "@/lib/money";
 import { getSession } from "@/lib/session";
 import { Badge } from "@/components/ui/Badge";
-import { reconcileOrder } from "@/modules/shop/services/order.service";
+import { reconcileOrder, syncEscrowToOrderTotal } from "@/modules/shop/services/order.service";
 import { OrderActions } from "./OrderActions";
+import { OrderItemReview } from "./OrderItemReview";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +41,22 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
       // TrustPay may be briefly unavailable; show the local order.
     }
   }
+
+  if ((order.status === "PAID_IN_ESCROW" || order.status === "SHIPPED") && order.paymentId) {
+    try {
+      await syncEscrowToOrderTotal(order);
+      order = await prisma.order.findUniqueOrThrow({
+        where: { id },
+        include: { items: true, events: { orderBy: { createdAt: "asc" } }, buyer: true },
+      });
+    } catch {
+      // The buyer can retry the change. Show the order either way.
+    }
+  }
+
+  const originalMinor = order.items.reduce((sum, item) => sum + item.unitPriceMinor * item.orderedQuantity, 0);
+  const returnedMinor = Math.max(0, originalMinor - order.totalMinor);
+  const canReview = session.role === "BUYER" && (order.status === "PAID_IN_ESCROW" || order.status === "SHIPPED");
 
   const stepIndex = order.status === "COMPLETED" ? 1 : order.status === "PAID_IN_ESCROW" || order.status === "SHIPPED" ? 0 : -1;
 
@@ -80,19 +97,19 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               </li>
             ))}
           </ol>
-          <ul className="mt-6 divide-y divide-[var(--border)] text-sm">
-            {order.items.map((item) => (
-              <li key={item.id} className="flex justify-between gap-3 py-3">
-                <div>
-                  <p className="font-medium">
-                    {item.nameSnapshot} × {item.quantity}
-                  </p>
-                  <p className="text-xs text-[var(--muted)]">{formatGhs(item.unitPriceMinor)} each</p>
-                </div>
-                <span className="font-medium">{formatGhs(item.unitPriceMinor * item.quantity)}</span>
-              </li>
-            ))}
-          </ul>
+          <OrderItemReview
+            orderId={order.id}
+            editable={canReview}
+            items={order.items.map((item) => ({
+              id: item.id,
+              name: item.nameSnapshot,
+              unitPriceMinor: item.unitPriceMinor,
+              quantity: item.quantity,
+              orderedQuantity: item.orderedQuantity,
+              buyerComment: item.buyerComment,
+              buyerImageUrl: item.buyerImageUrl,
+            }))}
+          />
           <div className="mt-4 flex justify-between border-t border-[var(--border)] pt-3 text-sm">
             <span className="text-[var(--muted)]">Order total</span>
             <span className="text-lg font-semibold">{formatGhs(order.totalMinor)}</span>
@@ -114,6 +131,11 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               <p className="mt-2 font-semibold">
                 {formatGhs(order.totalMinor)} is held safely by TrustPay
               </p>
+              {returnedMinor > 0 ? (
+                <p className="mt-1 text-sm text-[var(--muted)]">
+                  {formatGhs(returnedMinor)} was returned to you because you kept fewer items.
+                </p>
+              ) : null}
               <p className="mt-1 text-sm text-[var(--muted)]">
                 Click Item received when you have the item. That releases the money to the seller.
               </p>

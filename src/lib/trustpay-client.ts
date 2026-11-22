@@ -1,4 +1,5 @@
 import {
+  AdjustPaymentRequestSchema,
   CreatePaymentRequestSchema,
   CreatePaymentResponseSchema,
   CreatePayoutRequestSchema,
@@ -16,6 +17,7 @@ import {
   type Payout,
   type WebhookPayload,
 } from "@/contracts/trustpay";
+import { loopbackOrigin } from "@/lib/app-origin";
 import { getEnv } from "@/lib/env";
 import { createRequestId } from "@/lib/request-context";
 import { hmacSha256Hex, timingSafeEqualHex } from "@/lib/crypto";
@@ -39,6 +41,25 @@ type ClientOptions = {
   timeoutMs?: number;
 };
 
+async function resolveBaseUrl(explicit?: string): Promise<string> {
+  if (explicit) return explicit.replace(/\/$/, "");
+  try {
+    const { headers } = await import("next/headers");
+    const h = await headers();
+    const rawHost = h.get("x-forwarded-host") ?? h.get("host");
+    if (rawHost) {
+      const host = rawHost.split(",")[0]?.trim() || rawHost;
+      const forwarded = h.get("x-forwarded-proto")?.split(",")[0]?.trim();
+      const proto =
+        forwarded || (host.startsWith("localhost") || host.startsWith("127.0.0.1") ? "http" : "https");
+      return loopbackOrigin(`${proto}://${host}`);
+    }
+  } catch {
+    // headers() is only available during a request.
+  }
+  return loopbackOrigin(getEnv().TRUSTPAY_BASE_URL.replace(/\/$/, ""));
+}
+
 async function tpFetch<T>(
   path: string,
   init: {
@@ -50,7 +71,7 @@ async function tpFetch<T>(
   },
 ): Promise<T> {
   const env = getEnv();
-  const baseUrl = init.options?.baseUrl ?? env.TRUSTPAY_BASE_URL;
+  const baseUrl = await resolveBaseUrl(init.options?.baseUrl);
   const apiKey = init.options?.apiKey ?? env.TRUSTPAY_API_KEY;
   const timeoutMs = init.options?.timeoutMs ?? 30_000;
   const requestId = createRequestId();
@@ -106,12 +127,13 @@ async function tpFetch<T>(
     return parsed.data.data;
   } catch (error) {
     if (error instanceof TrustPayError) throw error;
-    throw new TrustPayError(
-      "internal_error",
-      500,
-      error instanceof Error ? error.message : "TrustPay network error",
-      requestId,
-    );
+    const cause =
+      error instanceof Error && error.cause instanceof Error
+        ? error.cause.message
+        : error instanceof Error
+          ? error.message
+          : "TrustPay network error";
+    throw new TrustPayError("internal_error", 500, `Could not reach TrustPay at ${baseUrl}: ${cause}`, requestId);
   } finally {
     clearTimeout(timer);
   }
@@ -146,6 +168,16 @@ export const trustpayClient = {
     return tpFetch(`/payments/${id}/release`, {
       method: "POST",
       body: {},
+      idempotencyKey,
+      schema: PaymentSchema,
+    });
+  },
+
+  adjustPayment(id: string, amountMinor: number, idempotencyKey: string): Promise<Payment> {
+    const body = AdjustPaymentRequestSchema.parse({ amountMinor });
+    return tpFetch(`/payments/${id}/adjust`, {
+      method: "POST",
+      body,
       idempotencyKey,
       schema: PaymentSchema,
     });
