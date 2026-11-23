@@ -19,6 +19,7 @@ const nextConfig: NextConfig = {
               "img-src 'self' data: blob: https:",
               "font-src 'self' data:",
               "connect-src 'self'",
+              "frame-src https://www.google.com https://maps.google.com",
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",

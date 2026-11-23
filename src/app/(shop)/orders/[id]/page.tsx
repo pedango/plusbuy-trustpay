@@ -163,6 +163,22 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               )}
             </ul>
           </div>
+          {session.role === "BUYER" ? (
+            <div className="card">
+              <p className="label">Rider</p>
+              <p className="mt-2 text-sm text-[var(--muted)]">
+                When the seller hands this order to a rider and shares the trip, you will see where the rider has
+                reached.
+              </p>
+              <iframe
+                title="Map of the rider for this order"
+                src="https://maps.google.com/maps?q=Accra%2C%20Ghana&hl=en&z=12&output=embed"
+                className="mt-3 h-64 w-full rounded-lg border border-[var(--border)]"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            </div>
+          ) : null}
         </aside>
       </div>
     </div>
